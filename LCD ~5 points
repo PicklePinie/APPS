@@ -1,0 +1,193 @@
+//Trying to look like segment display - CBD on LCD display in school
+#include "mbed.h"
+
+#include "lcd_lib.h"
+
+class Bod //class Point
+{
+private:
+    int color;
+
+public:
+   Bod( int x, int y, int barva )
+   {
+       this->x0 = x;
+       this->y0 = y;
+       this->color = barva;
+   };
+
+   void kresli( int x = 0, int y = 0 ) { //void draw
+       LCD_put_pixel( x0 + x, y0 + y, color);
+   }
+
+   int x0, y0;
+   int rgb;
+};
+
+
+class Usecka : public Bod{ //class Line : public Point
+public:
+    int x1, y1, color;
+    Usecka(int x0, int y0, int x1, int y1, int color):Bod(x0, y0,color){
+        this->x1 = x1;
+        this->y1 = y1;
+        this->color = color;
+    }
+
+    void kresli(int x = 0, int y = 0) //void draw
+    {
+        int type = 1;
+        int y_range = y1-y0;  // calc range of y and x
+        int x_range = x1-x0;
+        int start,stop,step;
+
+        // if dotted line, set step to 2, else step is 1
+        step = (type==2) ? 2:1;
+
+        // make sure we loop over the largest range to get the most pixels on the display
+        // for instance, if drawing a vertical line (x_range = 0), we need to loop down the y pixels
+        // or else we'll only end up with 1 pixel in the x column
+        if ( abs(x_range) > abs(y_range) ) {
+
+            // ensure we loop from smallest to largest or else for-loop won't run as expected
+            start = x1>x0 ? x0:x1;
+            stop =  x1>x0 ? x1:x0;
+
+            // loop between x pixels
+            for (int x = start; x<= stop ; x+=step) {
+                // do linear interpolation
+                int y = y0 + (y1-y0)*(x-x0)/(x1-x0);
+
+
+                    LCD_put_pixel(x,y,color);  // else if 'black' or 'dotted' turn on pixel
+            }
+        } else {
+
+            // ensure we loop from smallest to largest or else for-loop won't run as expected
+            start = y1>y0 ? y0:y1;
+            stop =  y1>y0 ? y1:y0;
+
+            for (int y = start; y<= stop ; y+=step) {
+                // do linear interpolation
+                int x = x0 + (x1-x0)*(y-y0)/(y1-y0);
+
+                    LCD_put_pixel(x,y,color);  // else if 'black' or 'dotted' turn on pixel
+
+            }
+        }
+
+    }
+};
+
+class BCD : public Usecka{ 
+public:
+    BCD(int odkudX, int odkudY, int color):Usecka(x0, y0, x1,y1, color){ //what X and Y (position)has the "array of numbers" when drawing
+        this->x0 = odkudX;
+        this->x1 = odkudX + x1;
+        this->y0 = odkudY;
+        this->y1 = odkudY + 1;
+        this->color = color;
+    }
+
+    void kresli(int pozice = 0, int cislo = 0) //void draw
+    {
+        int xposun = pozice * 35; //each "column" in "array of numbers" when drawing
+        Usecka sa(xposun + 0,0,xposun + 30,0,0xffffff);//segment A - up
+        Usecka sb(xposun + 30,0,xposun + 30,30,0xffffff);//segment B -  up right
+        Usecka sc(xposun +30,30,xposun +30,60,0xffffff);//segment C - down right
+        Usecka sd(xposun +0,60,xposun +30,60,0xffffff);//segment D - down
+        Usecka se(xposun +0,30,xposun +0,60,0xffffff);//segment E - down left
+        Usecka sf(xposun +0,0,xposun +0,30,0xffffff);//segment F - up left
+        Usecka sg(xposun +0,30,xposun +30,30,0xffffff);//segment G - middle
+
+//        Usecka seg[7] = {sa,sb,sc,sd,se,sf,sg}; //testing
+//        for(int i = 0; i<7; i++)
+//        {
+//            seg[i].kresli(0,0);
+//        }
+
+
+        switch(cislo){ //numbers with lines
+        case 0:
+            sa.kresli(0,0);
+            sb.kresli(0,0);
+            sb.kresli(0,0);
+            sf.kresli(0,0);
+            se.kresli(0,0);
+            sc.kresli(0,0);
+            sd.kresli(0,0);
+            break;
+        case 1:
+            sb.kresli(0,0);
+            sc.kresli(0,0);
+            break;
+        case 2:
+            sa.kresli(0,0);
+            sb.kresli(0,0);
+            sg.kresli(0,0);
+            se.kresli(0,0);
+            sd.kresli(0,0);
+            break;
+        case 3:
+            sa.kresli(0,0);
+            sb.kresli(0,0);
+            sb.kresli(0,0);
+            sc.kresli(0,0);
+            sd.kresli(0,0);
+            break;
+        case 4:
+            sf.kresli(0,0);
+            sg.kresli(0,0);
+            sb.kresli(0,0);
+            sc.kresli(0,0);
+            break;
+        case 5:
+            sa.kresli(0,0);
+            sf.kresli(0,0);
+            sg.kresli(0,0);
+            sc.kresli(0,0);
+            sd.kresli(0,0);
+            break;
+        case 6:
+            sa.kresli(0,0);
+            sf.kresli(0,0);
+            sg.kresli(0,0);
+            se.kresli(0,0);
+            sc.kresli(0,0);
+            sd.kresli(0,0);
+            break;
+        case 7:
+            sf.kresli(0,0);
+            sa.kresli(0,0);
+            sb.kresli(0,0);
+            sc.kresli(0,0);
+            break;
+        case 8:
+            sa.kresli(0,0);
+            sb.kresli(0,0);
+            sc.kresli(0,0);
+            sd.kresli(0,0);
+            se.kresli(0,0);
+            sf.kresli(0,0);
+            sg.kresli(0,0);
+            break;
+
+
+
+        }
+    }
+};
+int main(void)
+{
+    LCD_init();
+    LCD_clear();
+
+    BCD test(0,0,0xffffff); 
+    test.kresli(0,0);
+
+ return 0;
+}
+
+
+
+
